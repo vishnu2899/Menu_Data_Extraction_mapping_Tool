@@ -1,5 +1,9 @@
 # Menu Data Extraction and Mapping Tool
 
+## Repository
+
+The code is available on GitHub: https://github.com/vishnu2899/Menu_Data_Extraction_mapping_Tool
+
 ## Overview
 This project implements an automated solution to extract menu data from images, map it to a structured JSON reference, and format the results into an Excel file. It addresses the task of processing menu images (e.g., `task_menu_1.png`, `task_menu_2.png`) to pull categories, item names, prices, descriptions, and addons, then link them to JSON fields for restaurant details, categories, items, and customizations.
 

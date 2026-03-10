@@ -122,63 +122,86 @@ def map_data(extracted_data, json_ref):
     return mapped
 
 def save_to_excel(mapped_data, template_path, output_path):
-    """Format mapped data into the provided Excel template."""
+    """Format mapped data into the provided Excel template with all columns."""
     try:
         wb = openpyxl.load_workbook(template_path)
         ws = wb.active
     except Exception as e:
-        print(f"Error loading template: {e}. Creating new workbook.")
+        print(f"Error loading template: {e}. Creating new workbook with template columns.")
         wb = openpyxl.Workbook()
         ws = wb.active
-    # Assume appending to existing sheet
+        # Add headers if creating new
+        headers = ['restaurant_name', 'area_id', 'area_display_name', 'category_id', 'category_name', 'category_image_url', 'category_timings', 'category_rank', 'item_id', 'item_name', 'item_description', 'price', 'rank', 'category_id.1', 'image_url', 'instock', 'variation_item_id', 'variation_id', 'variation_name', 'variation_price', 'addon_name', 'addon_item_selection', 'addon_item_selection_min', 'addon_item_selection_max', 'addon_price', 'addon_id', 'addon_group_id', 'addon_group_name']
+        for col, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col, value=header)
     row = ws.max_row + 1
-    # Write restaurant if not present
-    if ws.max_row == 1:  # Assuming header
-        ws[f'A{row}'] = 'Restaurant Name'
-        ws[f'B{row}'] = mapped_data['restaurant']['restaurantname']
-        row += 1
-        ws[f'A{row}'] = 'Area ID'
-        ws[f'B{row}'] = mapped_data['areas'][0]['areaid'] if mapped_data['areas'] else ''
-        row += 1
-        ws[f'A{row}'] = 'Area Name'
-        ws[f'B{row}'] = mapped_data['areas'][0]['displayname'] if mapped_data['areas'] else ''
-        row += 1
-    # Categories
-    ws[f'A{row}'] = 'Categories'
-    row += 1
-    ws[f'A{row}'] = 'ID'
-    ws[f'B{row}'] = 'Name'
-    ws[f'C{row}'] = 'Availability'
-    ws[f'D{row}'] = 'Rank'
-    row += 1
-    for cat in mapped_data['categories']:
-        ws[f'A{row}'] = cat.get('categoryid', '')
-        ws[f'B{row}'] = cat.get('categoryname', '')
-        ws[f'C{row}'] = cat.get('active', '')
-        ws[f'D{row}'] = cat.get('categoryrank', '')
-        row += 1
-    # Items
-    ws[f'A{row}'] = 'Items'
-    row += 1
-    ws[f'A{row}'] = 'Name'
-    ws[f'B{row}'] = 'Description'
-    ws[f'C{row}'] = 'Price'
-    ws[f'D{row}'] = 'Rank'
-    ws[f'E{row}'] = 'Stock Status'
-    row += 1
+    # For each item
     for item in mapped_data['items']:
-        ws[f'A{row}'] = item.get('itemname', '')
-        ws[f'B{row}'] = item.get('itemdescription', '')
-        ws[f'C{row}'] = item.get('price', '')
-        ws[f'D{row}'] = item.get('itemrank', '')
-        ws[f'E{row}'] = item.get('instock', '')
+        cat = None
+        for c in mapped_data['categories']:
+            if c.get('categoryid') == item.get('item_categoryid'):
+                cat = c
+                break
+        if not cat:
+            cat = {'categoryid': '', 'categoryname': '', 'category_image_url': '', 'categorytimings': '', 'categoryrank': ''}
+        ws.cell(row=row, column=1, value=mapped_data['restaurant']['restaurantname'])  # restaurant_name
+        ws.cell(row=row, column=2, value=mapped_data['areas'][0]['areaid'] if mapped_data['areas'] else '')  # area_id
+        ws.cell(row=row, column=3, value=mapped_data['areas'][0]['displayname'] if mapped_data['areas'] else '')  # area_display_name
+        ws.cell(row=row, column=4, value=cat.get('categoryid', ''))  # category_id
+        ws.cell(row=row, column=5, value=cat.get('categoryname', ''))  # category_name
+        ws.cell(row=row, column=6, value=cat.get('category_image_url', ''))  # category_image_url
+        ws.cell(row=row, column=7, value=cat.get('categorytimings', ''))  # category_timings
+        ws.cell(row=row, column=8, value=cat.get('categoryrank', ''))  # category_rank
+        ws.cell(row=row, column=9, value=item.get('itemid', ''))  # item_id
+        ws.cell(row=row, column=10, value=item.get('itemname', ''))  # item_name
+        ws.cell(row=row, column=11, value=item.get('itemdescription', ''))  # item_description
+        ws.cell(row=row, column=12, value=item.get('price', ''))  # price
+        ws.cell(row=row, column=13, value=item.get('itemrank', ''))  # rank
+        ws.cell(row=row, column=14, value=cat.get('categoryid', ''))  # category_id.1
+        ws.cell(row=row, column=15, value=item.get('item_image_url', ''))  # image_url
+        ws.cell(row=row, column=16, value=item.get('instock', ''))  # instock
+        # Variations
+        variations = item.get('variation', [])
+        if variations:
+            var_names = '; '.join([str(v.get('name', '')) for v in variations])
+            var_prices = '; '.join([str(v.get('price', '')) for v in variations])
+            var_ids = '; '.join([str(v.get('variationid', '')) for v in variations])
+            var_item_ids = '; '.join([str(v.get('id', '')) for v in variations])
+        else:
+            var_names = var_prices = var_ids = var_item_ids = ''
+        ws.cell(row=row, column=17, value=var_item_ids)  # variation_item_id
+        ws.cell(row=row, column=18, value=var_ids)  # variation_id
+        ws.cell(row=row, column=19, value=var_names)  # variation_name
+        ws.cell(row=row, column=20, value=var_prices)  # variation_price
+        # Add-ons
+        addons = item.get('addon', [])
+        if addons:
+            addon_names = '; '.join([str(a.get('addon_name', '')) for a in addons])
+            addon_selections = '; '.join([str(a.get('addon_item_selection', '')) for a in addons])
+            addon_mins = '; '.join([str(a.get('addon_item_selection_min', '')) for a in addons])
+            addon_maxs = '; '.join([str(a.get('addon_item_selection_max', '')) for a in addons])
+            addon_prices = '; '.join([str(a.get('addon_price', '')) for a in addons])
+            addon_ids = '; '.join([str(a.get('addon_id', '')) for a in addons])
+            addon_group_ids = '; '.join([str(a.get('addon_group_id', '')) for a in addons])
+            addon_group_names = '; '.join([str(a.get('addon_group_name', '')) for a in addons])
+        else:
+            addon_names = addon_selections = addon_mins = addon_maxs = addon_prices = addon_ids = addon_group_ids = addon_group_names = ''
+        ws.cell(row=row, column=21, value=addon_names)  # addon_name
+        ws.cell(row=row, column=22, value=addon_selections)  # addon_item_selection
+        ws.cell(row=row, column=23, value=addon_mins)  # addon_item_selection_min
+        ws.cell(row=row, column=24, value=addon_maxs)  # addon_item_selection_max
+        ws.cell(row=row, column=25, value=addon_prices)  # addon_price
+        ws.cell(row=row, column=26, value=addon_ids)  # addon_id
+        ws.cell(row=row, column=27, value=addon_group_ids)  # addon_group_id
+        ws.cell(row=row, column=28, value=addon_group_names)  # addon_group_name
         row += 1
     wb.save(output_path)
+    print(f"Process completed. Output saved to {output_path}")
 
 def main():
     json_path = 'data_reference.json'
     template_path = 'Python Dev Task Sample.xlsx'
-    output_path = 'output_final.xlsx'
+    output_path = 'output_mapped.xlsx'
     image_paths = ['task_menu_1.png', 'task_menu_2.png']
 
     json_ref = load_json_reference(json_path)
